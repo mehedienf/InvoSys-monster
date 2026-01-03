@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: InvoSys
+    runtime: dotnet
+    runtimeVersion: 8.0
+    buildCommand: dotnet publish -c Release -o ./out
+    startCommand: cd ./out && dotnet InvoSys.dll
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: ASPNETCORE_URLS
+        value: http://+:${PORT}
+    disk:
+      name: inventory-db
+      mountPath: /data
+      sizeGB: 1

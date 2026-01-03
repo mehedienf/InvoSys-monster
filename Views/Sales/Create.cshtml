@@ -1,0 +1,666 @@
+@{
+    ViewData["Title"] = "নতুন বিক্রয়";
+    var products = ViewBag.Products as List<InventoryTracker.Models.Product> ?? new List<InventoryTracker.Models.Product>();
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white">
+                <h4 class="mb-0">
+                    <i class="bi bi-cart-plus me-2"></i>নতুন বিক্রয়
+                </h4>
+            </div>
+            <div class="card-body p-4">
+                <form asp-action="Create" method="post" id="saleForm">
+                    @Html.AntiForgeryToken()
+                    
+                    <h5 class="mb-3"><i class="bi bi-box me-1"></i>পণ্য নির্বাচন করুন</h5>
+                    
+                    @if (products.Any())
+                    {
+                        <div class="mb-3">
+                            <input type="text" id="productSearch" class="form-control" placeholder="পণ্যের নাম বা ক্যাটাগরি দ্বারা খুঁজুন..." />
+                        </div>
+                    }
+                    
+                    @if (products.Any())
+                    {
+                        <div class="card mb-4" style="border: 1px solid #dee2e6;">
+                            <div class="card-body p-0">
+                                <div class="table-responsive" style="max-height: 600px; overflow-y: auto; max-width: 100%;">
+                                    <table class="table table-bordered mb-0">
+                                        <thead class="table-light sticky-top">
+                                            <tr>
+                                                <th style="width: 50px;">নির্বাচন</th>
+                                                <th style="width: 35%;">পণ্যের নাম</th>
+                                                <th>ক্যাটাগরি</th>
+                                                <th>মূল্য</th>
+                                                <th>স্টকে আছে</th>
+                                                <th>পরিমাণ</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                    @foreach (var product in products)
+                                    {
+                                        <tr class="product-row">
+                                            <td class="text-center">
+                                                <input type="checkbox" class="form-check-input product-check" 
+                                                       data-product-id="@product.Id" 
+                                                       data-product-name="@product.Name"
+                                                       data-product-category="@product.Category"
+                                                       data-product-price="@product.Price" />
+                                            </td>
+                                            <td><strong>@product.Name</strong></td>
+                                            <td><span class="badge bg-info fs-6">@product.Category</span></td>
+                                            <td class="text-success fs-6">৳@product.Price.ToString("N2")</td>
+                                            <td>
+                                                <span class="badge @(product.Quantity < 10 ? "bg-warning" : "bg-success") fs-6">
+                                                    @product.Quantity
+                                                </span>
+                                            </td>
+                                            <td style="width: 250px;">
+                                                <div class="input-group input-group-lg">
+                                                    <button type="button" class="btn btn-outline-danger qty-decrease" 
+                                                            data-product-id="@product.Id" title="কমান">
+                                                        <i class="bi bi-dash-lg"></i>
+                                                    </button>
+                                                    <input type="number" class="form-control text-center product-qty" 
+                                                           value="0" min="0" max="@product.Quantity" 
+                                                           data-product-id="@product.Id" placeholder="পরিমাণ" />
+                                                    <button type="button" class="btn btn-outline-success qty-increase" 
+                                                            data-product-id="@product.Id" data-max="@product.Quantity" title="বাড়ান">
+                                                        <i class="bi bi-plus-lg"></i>
+                                                    </button>
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    }
+                                </tbody>
+                                    </table>
+                                </div>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-warning">
+                            <i class="bi bi-exclamation-triangle me-2"></i>
+                            কোনো পণ্য নেই। প্রথমে পণ্য যোগ করুন।
+                            <a asp-controller="Products" asp-action="Create" class="alert-link">পণ্য যোগ করুন</a>
+                        </div>
+                    }
+                    
+                    <!-- Live Bill Summary -->
+                    <div class="row mb-4">
+                        <div class="col-12">
+                            <div class="card bg-light border-success" id="billCard" style="display: none;">
+                                <div class="card-header bg-success text-white">
+                                    <h6 class="mb-0"><i class="bi bi-receipt me-2"></i>বিল সারসংক্ষেপ</h6>
+                                </div>
+                                <div class="card-body">
+                                    <div id="billItemsList" style="max-height: 300px; overflow-y: auto; margin-bottom: 10px;">
+                                    </div>
+                                    <hr />
+                                    <div class="mb-3">
+                                        <div class="d-flex justify-content-between">
+                                            <span>পণ্য সংখ্যা:</span>
+                                            <span id="billQty" class="badge bg-info">0</span>
+                                        </div>
+                                    </div>
+                                    <div class="mb-4">
+                                        <div class="d-flex justify-content-between">
+                                            <strong>মোট মূল্য:</strong>
+                                            <h5 class="mb-0"><span id="billTotal" class="text-success">৳0.00</span></h5>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <a asp-action="Index" class="btn btn-outline-secondary btn-lg flex-grow-1" style="padding: 15px;">
+                                            <i class="bi bi-arrow-left me-1"></i>ফিরে যান
+                                        </a>
+                                        <button type="button" class="btn btn-success btn-lg flex-grow-1" id="reviewBtn" @(products.Any() ? "" : "disabled") style="padding: 15px;">
+                                            <i class="bi bi-check-circle me-1"></i>বিল পরীক্ষা করুন
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Bill Confirmation Modal -->
+<div class="modal fade" id="billModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered" style="max-width: 95vw;">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-receipt me-2"></i>বিক্রয় বিল নিশ্চিতকরণ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body p-3 p-sm-4" style="max-height: 70vh; overflow-y: auto;">
+                <div class="row g-2 mb-3">
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-person me-1"></i>গ্রাহকের নাম (ঐচ্ছিক)
+                        </label>
+                        <input type="text" id="modalCustomerName" name="customerName" class="form-control form-control-sm" placeholder="গ্রাহকের নাম" />
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-telephone me-1"></i>ফোন নম্বর (ঐচ্ছিক)
+                        </label>
+                        <input type="tel" id="modalPhoneNumber" name="phoneNumber" class="form-control form-control-sm" placeholder="०१XXX-XXXXXX" />
+                    </div>
+                    <div class="col-12 col-md-4">
+                        <label class="form-label fw-bold">
+                            <i class="bi bi-sticky me-1"></i>মন্তব্য (ঐচ্ছিক)
+                        </label>
+                        <input type="text" id="modalNotes" name="notes" class="form-control form-control-sm" placeholder="বিক্রয়ের মন্তব্য" />
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-bold">
+                        <i class="bi bi-cash-coin me-1"></i>ছাড় (টাকা)
+                    </label>
+                    <input type="number" id="modalDiscount" name="discountAmount" class="form-control form-control-sm" placeholder="0" min="0" step="0.01" style="max-width: 150px;" />
+                </div>
+                <hr />
+                <h6 class="mb-3"><i class="bi bi-box me-2"></i>পণ্য তালিকা</h6>
+                <div class="table-responsive" style="max-height: 300px; overflow-y: auto;">
+                    <table class="table table-sm table-bordered mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="width: 40%;">পণ্য</th>
+                                <th style="width: 20%;" class="text-end">দাম</th>
+                                <th style="width: 15%;" class="text-center">পরিমাণ</th>
+                                <th style="width: 15%;" class="text-end">মোট</th>
+                                <th style="width: 10%;" class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="modalBillItems">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer border-top p-3">
+                <div class="w-100">
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <span>মোট পণ্য সংখ্যা:</span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <span id="modalTotalQty" class="badge bg-info">0</span>
+                        </div>
+                    </div>
+                    <div class="row mb-2">
+                        <div class="col-6">
+                            <strong>মোট বিক্রয় মূল্য:</strong>
+                        </div>
+                        <div class="col-6 text-end">
+                            <h5 class="mb-0"><span id="modalTotalPrice" class="text-success">৳0.00</span></h5>
+                        </div>
+                    </div>
+                    <div class="row mb-2" id="discountRow" style="display: none;">
+                        <div class="col-6">
+                            <span id="discountLabel"><strong>ছাড়:</strong></span>
+                        </div>
+                        <div class="col-6 text-end">
+                            <span id="discountDisplay" class="text-danger"><strong>-৳<span id="discountValue">0.00</span></strong></span>
+                        </div>
+                    </div>
+                    <div class="row" id="finalAmountRow" style="display: none;">
+                        <div class="col-6">
+                            <strong>চূড়ান্ত মূল্য:</strong>
+                        </div>
+                        <div class="col-6 text-end">
+                            <h5 class="mb-0"><span id="modalFinalPrice" class="text-success">৳0.00</span></h5>
+                        </div>
+                    </div>
+                </div>
+                <hr class="my-3 w-100" />
+                <div class="w-100 d-flex gap-2">
+                    <button type="button" class="btn btn-secondary btn-lg" data-bs-dismiss="modal" style="padding: 15px; font-size: 1.1rem;">বাতিল</button>
+                    <button type="button" class="btn btn-success btn-lg flex-grow-1" id="confirmBtn" style="padding: 15px; font-size: 1.1rem;">
+                        <i class="bi bi-check-circle me-1"></i>নিশ্চিত করুন এবং বিক্রয় সম্পন্ন করুন
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        // Global billData to store current bill state
+        let billData = { items: [] };
+        
+        // Update bill display
+        function updateBill() {
+            const items = [];
+            let totalPrice = 0;
+            let totalQty = 0;
+            
+            document.querySelectorAll('.product-check:checked').forEach(checkbox => {
+                const productId = checkbox.getAttribute('data-product-id');
+                const productName = checkbox.getAttribute('data-product-name');
+                const productPrice = parseFloat(checkbox.getAttribute('data-product-price'));
+                const qtyInput = document.querySelector(`.product-qty[data-product-id="${productId}"]`);
+                const quantity = parseInt(qtyInput.value) || 0;
+                
+                if (quantity > 0) {
+                    const itemTotal = productPrice * quantity;
+                    items.push({
+                        id: productId,
+                        name: productName,
+                        price: productPrice,
+                        quantity: quantity,
+                        total: itemTotal
+                    });
+                    totalPrice += itemTotal;
+                    totalQty += quantity;
+                }
+            });
+            
+            // Store in global billData
+            billData.items = items;
+            
+            // Update bill card
+            const billCard = document.getElementById('billCard');
+            const billItemsList = document.getElementById('billItemsList');
+            
+            if (items.length > 0) {
+                billCard.style.display = 'block';
+                billItemsList.innerHTML = '';
+                
+                items.forEach((item, index) => {
+                    const div = document.createElement('div');
+                    div.className = 'border-bottom pb-2 mb-2';
+                    div.setAttribute('data-bill-item-index', index);
+                    div.innerHTML = `
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>${item.name}</strong>
+                            </div>
+                            <div class="d-flex align-items-center gap-2">
+                                <button type="button" class="btn btn-sm btn-outline-danger bill-qty-decrease" data-item-index="${index}" title="কমান">
+                                    <i class="bi bi-dash-lg"></i>
+                                </button>
+                                <span class="badge bg-secondary" style="display: inline-block; padding: 0.5em 0.75em; min-width: 60px;">পরিমাণ: ${item.quantity}</span>
+                                <button type="button" class="btn btn-sm btn-outline-success bill-qty-increase" data-item-index="${index}" title="বাড়ান">
+                                    <i class="bi bi-plus-lg"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between text-muted small">
+                            <span>৳${item.price.toFixed(2)} × ${item.quantity}</span>
+                            <span class="text-dark fw-bold">৳${item.total.toFixed(2)}</span>
+                        </div>
+                    `;
+                    billItemsList.appendChild(div);
+                });
+                
+                document.getElementById('billQty').textContent = totalQty;
+                document.getElementById('billTotal').textContent = '৳' + totalPrice.toFixed(2);
+            } else {
+                billCard.style.display = 'none';
+            }
+            
+            return { items, totalPrice, totalQty };
+        }
+        
+        // Event delegation for bill summary buttons
+        document.getElementById('billItemsList').addEventListener('click', function(e) {
+            const btn = e.target.closest('.bill-qty-increase, .bill-qty-decrease');
+            if (!btn) return;
+            
+            e.preventDefault();
+            const index = parseInt(btn.getAttribute('data-item-index'));
+            const item = billData.items[index];
+            
+            if (btn.classList.contains('bill-qty-increase')) {
+                const productId = item.id;
+                const maxQty = parseInt(document.querySelector(`.product-qty[data-product-id="${productId}"]`)?.max) || 999;
+                if (item.quantity < maxQty) {
+                    item.quantity += 1;
+                    item.total = item.price * item.quantity;
+                    // Update main product qty input
+                    document.querySelector(`.product-qty[data-product-id="${productId}"]`).value = item.quantity;
+                    updateBill();
+                }
+            } else if (btn.classList.contains('bill-qty-decrease')) {
+                const productId = item.id;
+                if (item.quantity > 1) {
+                    item.quantity -= 1;
+                    item.total = item.price * item.quantity;
+                    // Update main product qty input
+                    document.querySelector(`.product-qty[data-product-id="${productId}"]`).value = item.quantity;
+                    updateBill();
+                } else if (item.quantity === 1) {
+                    // Remove the item from billData
+                    billData.items.splice(index, 1);
+                    // Uncheck the product checkbox
+                    const checkbox = document.querySelector(`.product-check[data-product-id="${productId}"]`);
+                    if (checkbox) {
+                        checkbox.checked = false;
+                    }
+                    document.querySelector(`.product-qty[data-product-id="${productId}"]`).value = 0;
+                    updateBill();
+                }
+            }
+        });
+        
+        // Function to update bill when modal quantities change
+        function updateBillFromModal() {
+            // Update main table quantities
+            document.querySelectorAll('tr[data-item-index]').forEach((row, index) => {
+                const qtyCell = row.querySelector('td:nth-child(3)');
+                const totalCell = row.querySelector('td:nth-child(4)');
+                const billData_current = billData.items[index];
+                if (qtyCell && totalCell && billData_current) {
+                    qtyCell.textContent = billData_current.quantity;
+                    totalCell.textContent = '৳' + billData_current.total.toFixed(2);
+                }
+            });
+            
+            // Recalculate totals
+            let totalQty = 0;
+            let totalPrice = 0;
+            billData.items.forEach(item => {
+                totalQty += item.quantity;
+                totalPrice += item.total;
+            });
+            
+            // Get discount from input
+            const discountInput = document.getElementById('modalDiscount');
+            const discountAmount = parseFloat(discountInput.value) || 0;
+            const finalPrice = totalPrice - discountAmount;
+            
+            // Update modal totals
+            document.getElementById('modalTotalQty').textContent = totalQty;
+            document.getElementById('modalTotalPrice').textContent = '৳' + totalPrice.toFixed(2);
+            
+            // Update discount display
+            const discountRow = document.getElementById('discountRow');
+            if (discountAmount > 0) {
+                discountRow.style.display = 'flex';
+                document.getElementById('discountValue').textContent = discountAmount.toFixed(2);
+                document.getElementById('finalAmountRow').style.display = 'flex';
+                document.getElementById('modalFinalPrice').textContent = '৳' + finalPrice.toFixed(2);
+            } else {
+                discountRow.style.display = 'none';
+                document.getElementById('finalAmountRow').style.display = 'none';
+            }
+        }
+        
+        
+        // Increment/Decrement buttons
+        document.querySelectorAll('.qty-increase').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const productId = this.dataset.productId;
+                const maxQty = parseInt(this.dataset.max);
+                const input = document.querySelector(`.product-qty[data-product-id="${productId}"]`);
+                if (input) {
+                    let currentVal = parseInt(input.value) || 0;
+                    if (currentVal < maxQty) {
+                        input.value = currentVal + 1;
+                        // Update checkbox and trigger change
+                        const checkbox = document.querySelector(`.product-check[data-product-id="${productId}"]`);
+                        if (checkbox) {
+                            checkbox.checked = (currentVal + 1) > 0;
+                        }
+                        updateBill();
+                    }
+                }
+            });
+        });
+        
+        document.querySelectorAll('.qty-decrease').forEach(btn => {
+            btn.addEventListener('click', function(e) {
+                e.preventDefault();
+                const productId = this.dataset.productId;
+                const input = document.querySelector(`.product-qty[data-product-id="${productId}"]`);
+                if (input) {
+                    let currentVal = parseInt(input.value) || 0;
+                    if (currentVal > 0) {
+                        input.value = currentVal - 1;
+                        // Update checkbox and trigger change
+                        const checkbox = document.querySelector(`.product-check[data-product-id="${productId}"]`);
+                        if (checkbox) {
+                            checkbox.checked = (currentVal - 1) > 0;
+                        }
+                        updateBill();
+                    }
+                }
+            });
+        });
+        
+        // Event listeners for updates
+        document.querySelectorAll('.product-check').forEach(checkbox => {
+            checkbox.addEventListener('change', updateBill);
+        });
+        
+        document.querySelectorAll('.product-qty').forEach(input => {
+            input.addEventListener('change', function(e) {
+                // Auto check/uncheck product checkbox based on quantity
+                const productId = this.dataset.productId;
+                const checkbox = document.querySelector(`.product-check[data-product-id="${productId}"]`);
+                if (checkbox) {
+                    checkbox.checked = parseInt(this.value) > 0;
+                }
+                updateBill();
+            });
+            input.addEventListener('keyup', function(e) {
+                // Auto check/uncheck product checkbox based on quantity
+                const productId = this.dataset.productId;
+                const checkbox = document.querySelector(`.product-check[data-product-id="${productId}"]`);
+                if (checkbox) {
+                    checkbox.checked = parseInt(this.value) > 0;
+                }
+                updateBill();
+            });
+        });
+        
+        
+        // Review button - show confirmation modal
+        document.getElementById('reviewBtn')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            updateBill(); // This populates billData.items
+            
+            if (billData.items.length === 0) {
+                alert('অন্তত একটি পণ্য নির্বাচন করুন এবং পরিমাণ দিন');
+                return;
+            }
+            
+            // Customer info inputs are now in modal - no need to populate
+            const modalBillItems = document.getElementById('modalBillItems');
+            modalBillItems.innerHTML = '';
+            
+            let totalQty = 0;
+            let totalPrice = 0;
+            
+            billData.items.forEach((item, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${item.name}</td>
+                    <td class="text-end">৳${item.price.toFixed(2)}</td>
+                    <td class="text-center"><strong>${item.quantity}</strong></td>
+                    <td class="text-end fw-bold">৳${item.total.toFixed(2)}</td>
+                    <td class="text-center">
+                        <button type="button" class="btn btn-sm btn-outline-danger modal-qty-decrease" data-item-index="${index}" title="সরান">
+                            <i class="bi bi-trash-fill"></i>
+                        </button>
+                    </td>
+                `;
+                tr.setAttribute('data-item-index', index);
+                modalBillItems.appendChild(tr);
+                
+                totalQty += item.quantity;
+                totalPrice += item.total;
+            });
+            
+            // Update modal totals
+            document.getElementById('modalTotalQty').textContent = totalQty;
+            document.getElementById('modalTotalPrice').textContent = '৳' + totalPrice.toFixed(2);
+            
+        // Event delegation for modal quantity buttons
+        document.getElementById('modalBillItems').addEventListener('click', function(e) {
+            const btn = e.target.closest('.modal-qty-decrease');
+            if (!btn) return;
+            
+            const index = parseInt(btn.getAttribute('data-item-index'));
+            const item = billData.items[index];
+            
+            // Remove the row immediately
+            const row = document.querySelector(`tr[data-item-index="${index}"]`);
+            if (row) {
+                row.remove();
+            }
+            // Remove from billData
+            billData.items.splice(index, 1);
+            // Update modal totals
+            let totalQty = 0, totalPrice = 0;
+            billData.items.forEach(i => {
+                totalQty += i.quantity;
+                totalPrice += i.total;
+            });
+            document.getElementById('modalTotalQty').textContent = totalQty;
+            document.getElementById('modalTotalPrice').textContent = '৳' + totalPrice.toFixed(2);
+            // Also uncheck the product in main form
+            const checkbox = document.querySelector(`.product-check[data-product-id="${item.id}"]`);
+            if (checkbox) {
+                checkbox.checked = false;
+            }
+            document.querySelector(`.product-qty[data-product-id="${item.id}"]`).value = 0;
+        });
+            
+            // Show modal
+            new bootstrap.Modal(document.getElementById('billModal')).show();
+        });
+        
+        // Confirm button - submit form
+        document.getElementById('confirmBtn')?.addEventListener('click', function(e) {
+            e.preventDefault();
+            const form = document.getElementById('saleForm');
+            
+            if (!billData.items || billData.items.length === 0) {
+                alert('অন্তত একটি পণ্য নির্বাচন করুন');
+                return;
+            }
+            
+            // Remove any existing hidden inputs first
+            form.querySelectorAll('input[name="productIds"], input[name="quantities"], input[name="customerName"], input[name="phoneNumber"], input[name="notes"], input[name="discountAmount"]').forEach(el => el.remove());
+            
+            // Add customer info from modal to form
+            const customerName = document.getElementById('modalCustomerName').value;
+            const phoneNumber = document.getElementById('modalPhoneNumber').value;
+            const notes = document.getElementById('modalNotes').value;
+            const discountAmount = document.getElementById('modalDiscount').value;
+            
+            if (customerName) {
+                const nameInput = document.createElement('input');
+                nameInput.type = 'hidden';
+                nameInput.name = 'customerName';
+                nameInput.value = customerName;
+                form.appendChild(nameInput);
+            }
+            
+            if (phoneNumber) {
+                const phoneInput = document.createElement('input');
+                phoneInput.type = 'hidden';
+                phoneInput.name = 'phoneNumber';
+                phoneInput.value = phoneNumber;
+                form.appendChild(phoneInput);
+            }
+            
+            if (notes) {
+                const notesInput = document.createElement('input');
+                notesInput.type = 'hidden';
+                notesInput.name = 'notes';
+                notesInput.value = notes;
+                form.appendChild(notesInput);
+            }
+            
+            // Add discount amount
+            const discountInput = document.createElement('input');
+            discountInput.type = 'hidden';
+            discountInput.name = 'discountAmount';
+            discountInput.value = discountAmount || '0';
+            form.appendChild(discountInput);
+            
+            // Add hidden inputs for products and quantities
+            billData.items.forEach(item => {
+                const pidInput = document.createElement('input');
+                pidInput.type = 'hidden';
+                pidInput.name = 'productIds';
+                pidInput.value = item.id;
+                form.appendChild(pidInput);
+                
+                const qtyInput = document.createElement('input');
+                qtyInput.type = 'hidden';
+                qtyInput.name = 'quantities';
+                qtyInput.value = item.quantity;
+                form.appendChild(qtyInput);
+            });
+            
+            console.log('Submitting form with products:', billData.items);
+            console.log('Discount amount being sent:', discountAmount);
+            
+            // Close confirmation modal and submit
+            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('billModal'));
+            if (modalInstance) {
+                modalInstance.hide();
+            }
+            
+            // Submit the form
+            form.submit();
+        });
+        
+        // Product search by name or category
+        document.getElementById('productSearch')?.addEventListener('keyup', function(e) {
+            const searchText = e.target.value.trim().toLowerCase();
+            document.querySelectorAll('.product-row').forEach(row => {
+                const productName = row.querySelector('td:nth-child(2)').textContent.toLowerCase();
+                const productCategory = row.querySelector('td:nth-child(3)').textContent.toLowerCase();
+                const matches = productName.includes(searchText) || productCategory.includes(searchText);
+                row.style.display = matches ? '' : 'none';
+            });
+        });
+        
+        // Discount input change listener
+        const discountInput = document.getElementById('modalDiscount');
+        if (discountInput) {
+            discountInput.addEventListener('change', updateBillFromModal);
+            discountInput.addEventListener('keyup', updateBillFromModal);
+        }
+    </script>
+    
+    <style>
+        @@media print {
+            body * {
+                visibility: hidden;
+            }
+            
+            #receiptCard, #receiptCard * {
+                visibility: visible;
+            }
+            
+            #receiptCard {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 100%;
+                max-width: 80mm;
+            }
+            
+            .modal, .modal-footer, .modal-header {
+                display: none !important;
+            }
+        }
+    </style>
+}

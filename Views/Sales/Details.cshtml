@@ -1,0 +1,246 @@
+@model InventoryTracker.Models.SalesTransaction
+
+@{
+    ViewData["Title"] = "বিক্রয়ের বিস্তারিত";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        <div class="card shadow">
+            <div class="card-header bg-success text-white d-flex justify-content-between align-items-center">
+                <h4 class="mb-0">
+                    <i class="bi bi-receipt me-2"></i>বিক্রয় #@Model.Id
+                </h4>
+                <span class="badge bg-light text-dark">
+                    <i class="bi bi-calendar me-1"></i>@Model.SaleDate.ToString("dd MMM yyyy, hh:mm tt")
+                </span>
+            </div>
+            <div class="card-body p-4">
+                <!-- Customer Info -->
+                <div class="row mb-4">
+                    <div class="col-md-6">
+                        <div class="card bg-light">
+                            <div class="card-body">
+                                <h6 class="text-muted mb-2"><i class="bi bi-person me-1"></i>গ্রাহক</h6>
+                                <h5 class="mb-3">
+                                    @(string.IsNullOrEmpty(Model.CustomerName) ? "সাধারণ গ্রাহক" : Model.CustomerName)
+                                </h5>
+                                @if (!string.IsNullOrEmpty(Model.PhoneNumber))
+                                {
+                                    <h6 class="text-muted mb-2"><i class="bi bi-telephone me-1"></i>ফোন নম্বর</h6>
+                                    <p class="mb-0"><strong>@Model.PhoneNumber</strong></p>
+                                }
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-success text-white">
+                            <div class="card-body">
+                                <h6 class="opacity-75 mb-2"><i class="bi bi-cash me-1"></i>মোট মূল্য</h6>
+                                <h5 class="mb-2 text-decoration-line-through opacity-75">৳@Model.TotalAmount.ToString("N2")</h5>
+                                <h6 class="opacity-75 mb-1"><i class="bi bi-tag me-1"></i>ছাড়</h6>
+                                <p class="mb-2">-৳@Model.DiscountAmount.ToString("N2")</p>
+                                <hr class="my-2 opacity-50" />
+                                <h6 class="opacity-75 mb-2"><i class="bi bi-cash-coin me-1"></i>চূড়ান্ত মূল্য</h6>
+                                <h3 class="mb-0 fw-bold">৳@Model.FinalAmount.ToString("N2")</h3>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                @if (!string.IsNullOrEmpty(Model.Notes))
+                {
+                    <div class="alert alert-info mb-4">
+                        <i class="bi bi-sticky me-2"></i><strong>মন্তব্য:</strong> @Model.Notes
+                    </div>
+                }
+                
+                <!-- Items Table -->
+                <h5 class="mb-3"><i class="bi bi-box me-1"></i>বিক্রিত পণ্য</h5>
+                <div class="table-responsive">
+                    <table class="table table-bordered">
+                        <thead class="table-dark">
+                            <tr>
+                                <th>#</th>
+                                <th>পণ্যের নাম</th>
+                                <th class="text-center">পরিমাণ</th>
+                                <th class="text-end">একক মূল্য</th>
+                                <th class="text-end">মোট</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (Model.SalesItems != null && Model.SalesItems.Any())
+                            {
+                                var index = 1;
+                                @foreach (var item in Model.SalesItems)
+                                {
+                                    <tr>
+                                        <td>@index</td>
+                                        <td><strong>@item.Product?.Name</strong></td>
+                                        <td class="text-center">
+                                            <span class="badge bg-primary">@item.QuantitySold</span>
+                                        </td>
+                                        <td class="text-end">৳@item.UnitPrice.ToString("N2")</td>
+                                        <td class="text-end text-success fw-bold">
+                                            ৳@((item.UnitPrice * item.QuantitySold).ToString("N2"))
+                                        </td>
+                                    </tr>
+                                    index++;
+                                }
+                            }
+                        </tbody>
+                        <tfoot class="table-light">
+                            <tr>
+                                <td colspan="4" class="text-end"><strong>মোট:</strong></td>
+                                <td class="text-end text-success fs-5 fw-bold">৳@Model.TotalAmount.ToString("N2")</td>
+                            </tr>
+                            <tr>
+                                <td colspan="4" class="text-end"><strong>ছাড়:</strong></td>
+                                <td class="text-end text-danger fw-bold">-৳@Model.DiscountAmount.ToString("N2")</td>
+                            </tr>
+                            <tr class="table-success">
+                                <td colspan="4" class="text-end"><strong>চূড়ান্ত মূল্য:</strong></td>
+                                <td class="text-end text-success fs-5 fw-bold">৳@Model.FinalAmount.ToString("N2")</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+                
+                <div class="d-flex gap-2 mt-4">
+                    <a asp-action="Index" class="btn btn-outline-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>ফিরে যান
+                    </a>
+                    <button type="button" class="btn btn-primary" onclick="printReceipt();">
+                        <i class="bi bi-printer me-1"></i>প্রিন্ট
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Receipt Modal -->
+<div class="modal fade" id="receiptModal" tabindex="-1" data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-md">
+        <div class="modal-content">
+            <div class="modal-header bg-success text-white">
+                <h5 class="modal-title"><i class="bi bi-receipt me-2"></i>বিক্রয় রসিদ</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <!-- Receipt Card -->
+                <div class="card border-0" id="receiptCard" style="background: #f8f9fa; border: 2px dashed #28a745;">
+                    <div class="card-body p-4">
+                        <!-- Header -->
+                        <div class="text-center mb-4">
+                            <h4 class="mb-1">🛍️ আমাদের দোকান</h4>
+                            <p class="text-muted small mb-0">বিক্রয় রসিদ</p>
+                        </div>
+                        
+                        <hr class="my-2" />
+                        
+                        <!-- Receipt Details -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">রসিদ নম্বর:</span>
+                                <strong>#@Model.Id</strong>
+                            </div>
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">তারিখ ও সময়:</span>
+                                <strong>@Model.SaleDate.ToString("dd/MM/yyyy HH:mm")</strong>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-2" />
+                        
+                        <!-- Customer Info -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between mb-2">
+                                <span class="text-muted">গ্রাহক:</span>
+                                <strong>@(string.IsNullOrEmpty(Model.CustomerName) ? "অতিথি" : Model.CustomerName)</strong>
+                            </div>
+                            <div class="d-flex justify-content-between">
+                                <span class="text-muted">ফোন:</span>
+                                <strong>@(string.IsNullOrEmpty(Model.PhoneNumber) ? "N/A" : Model.PhoneNumber)</strong>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-2" />
+                        
+                        <!-- Items -->
+                        <div class="mb-3">
+                            <div class="mb-2">
+                                <div class="d-flex justify-content-between text-muted small fw-bold mb-1">
+                                    <span style="flex: 1;">পণ্য</span>
+                                    <span style="width: 70px; text-align: center;">পরিমাণ</span>
+                                    <span style="width: 100px; text-align: right;">মূল্য</span>
+                                </div>
+                            </div>
+                            @if (Model.SalesItems != null && Model.SalesItems.Any())
+                            {
+                                @foreach (var item in Model.SalesItems)
+                                {
+                                    <div class="mb-2">
+                                        <div class="d-flex justify-content-between small">
+                                            <span style="flex: 1;">@item.Product?.Name</span>
+                                            <span style="width: 70px; text-align: center;">x@(item.QuantitySold)</span>
+                                            <span style="width: 100px; text-align: right;">৳@((item.UnitPrice * item.QuantitySold).ToString("N2"))</span>
+                                        </div>
+                                    </div>
+                                }
+                            }
+                        </div>
+                        
+                        <hr class="my-2" />
+                        
+                        <!-- Total -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between">
+                                <strong>মোট পরিমাণ:</strong>
+                                <h5 class="mb-0 text-success"><strong>৳@Model.TotalAmount.ToString("N2")</strong></h5>
+                            </div>
+                            <div>
+                                <div class="d-flex justify-content-between mt-2">
+                                    <span>ছাড়:</span>
+                                    <span class="text-danger"><strong>-৳@Model.DiscountAmount.ToString("N2")</strong></span>
+                                </div>
+                                <div class="d-flex justify-content-between mt-2 border-top pt-2">
+                                    <strong>চূড়ান্ত মূল্য:</strong>
+                                    <h5 class="mb-0 text-success fw-bold" style="font-size: 1.3rem; letter-spacing: 0.5px;">৳@Model.FinalAmount.ToString("N2")</h5>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <hr class="my-2" />
+                        
+                        <!-- Footer -->
+                        <div class="text-center text-muted small">
+                            <p class="mb-1">আমাদের সাথে কেনাকাটা করার জন্য ধন্যবাদ!</p>
+                            <p>আবার দেখা হবে!</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">বন্ধ করুন</button>
+                <button type="button" class="btn btn-success" onclick="printReceipt();">
+                    <i class="bi bi-printer me-1"></i>প্রিন্ট করুন
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Print Receipt Script -->
+<script src="~/js/receipt-print.js"></script>
+
+<style>
+    #receiptModal.modal.show {
+        background-color: rgba(0, 0, 0, 0.8) !important;
+    }
+    
+    .modal-backdrop {
+        opacity: 0.8 !important;
+    }
+</style>
