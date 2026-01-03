@@ -1,5 +1,4 @@
 # .NET Core
-bin/
 obj/
 .vs/
 .vscode/
@@ -98,7 +97,6 @@ paket-files/
 # Documentation
 README.md
 artifacts/
-publish/
 PublishProfiles/
 
 # Test Results

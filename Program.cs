@@ -106,8 +106,8 @@ if (!app.Environment.IsDevelopment())
     app.UseHsts();
 }
 
-// Only use HTTPS redirection when HTTPS is available
-if (!app.Environment.IsProduction())
+// Only use HTTPS redirection in development
+if (app.Environment.IsDevelopment())
 {
     app.UseHttpsRedirection();
 }
