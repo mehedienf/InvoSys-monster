@@ -71,6 +71,33 @@ namespace InventoryTracker.Controllers
                 discountAmount = 0;
             }
 
+            // স্টক ভেলিডেশন - সব পণ্যের জন্য চেক করুন
+            for (int i = 0; i < productIds.Length; i++)
+            {
+                var product = await _context.Products.FindAsync(productIds[i]);
+                
+                if (product == null)
+                {
+                    ModelState.AddModelError("", $"পণ্য নাম্বার {productIds[i]} খুঁজে পাওয়া যায়নি");
+                    ViewBag.Products = await _context.Products.Where(p => p.Quantity > 0).ToListAsync();
+                    return View();
+                }
+
+                if (quantities[i] <= 0)
+                {
+                    ModelState.AddModelError("", $"পণ্য '{product.Name}' এর পরিমাণ ০ এর বেশি হতে হবে");
+                    ViewBag.Products = await _context.Products.Where(p => p.Quantity > 0).ToListAsync();
+                    return View();
+                }
+
+                if (product.Quantity < quantities[i])
+                {
+                    ModelState.AddModelError("", $"পণ্য '{product.Name}' এর স্টক অপর্যাপ্ত। উপলব্ধ: {product.Quantity}, অনুরোধ করা: {quantities[i]}");
+                    ViewBag.Products = await _context.Products.Where(p => p.Quantity > 0).ToListAsync();
+                    return View();
+                }
+            }
+
             var transaction = new SalesTransaction
             {
                 CustomerName = customerName,
@@ -85,22 +112,20 @@ namespace InventoryTracker.Controllers
             for (int i = 0; i < productIds.Length; i++)
             {
                 var product = await _context.Products.FindAsync(productIds[i]);
-                if (product != null && quantities[i] > 0 && product.Quantity >= quantities[i])
+                
+                var saleItem = new SalesItem
                 {
-                    var saleItem = new SalesItem
-                    {
-                        ProductId = product.Id,
-                        QuantitySold = quantities[i],
-                        UnitPrice = product.Price
-                    };
+                    ProductId = product.Id,
+                    QuantitySold = quantities[i],
+                    UnitPrice = product.Price
+                };
 
-                    transaction.SalesItems.Add(saleItem);
-                    totalAmount += product.Price * quantities[i];
+                transaction.SalesItems.Add(saleItem);
+                totalAmount += product.Price * quantities[i];
 
-                    // স্টক থেকে কমাও
-                    product.Quantity -= quantities[i];
-                    _context.Update(product);
-                }
+                // স্টক থেকে কমাও
+                product.Quantity -= quantities[i];
+                _context.Update(product);
             }
 
             transaction.TotalAmount = totalAmount;

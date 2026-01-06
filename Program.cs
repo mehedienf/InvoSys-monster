@@ -16,8 +16,9 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 // Connection String read
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+    ?? Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+    ?? throw new InvalidOperationException("Connection string not found.");
 
 // ApplicationDbContext register
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
