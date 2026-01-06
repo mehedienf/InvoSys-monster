@@ -30,8 +30,8 @@
                 <input type="date" name="endDate" class="form-control" value="@ViewBag.EndDate" />
             </div>
             <div class="col-md-4">
-                <button type="submit" class="btn btn-primary w-100">
-                    <i class="bi bi-search me-1"></i>ফিল্টার করুন
+                <button type="submit" class="btn btn-primary btn-lg w-100" style="padding: 12px 20px; font-size: 18px;">
+                    <i class="bi bi-search me-2"></i>ফিল্টার করুন
                 </button>
             </div>
         </form>
@@ -137,14 +137,16 @@
             <table class="table table-hover mb-0">
                 <thead class="table-dark" style="position: sticky; top: 0; z-index: 10;">
                     <tr>
-                        <th style="width: 40px;">
+                        <th style="width: 40px;" class="text-center">
                             <input type="checkbox" class="form-check-input" id="selectAll">
                         </th>
-                        <th style="width: 10%;">বিক্রয় #</th>
-                        <th style="width: 18%;">গ্রাহক</th>
-                        <th style="width: 22%;">তারিখ ও সময়</th>
-                        <th style="width: 8%;" class="text-center">আইটেম</th>
-                        <th style="width: 12%;" class="text-end">মোট মূল্য</th>
+                        <th style="width: 8%;">বিক্রয় #</th>
+                        <th style="width: 15%;">গ্রাহক</th>
+                        <th style="width: 18%;">তারিখ ও সময়</th>
+                        <th style="width: 7%;" class="text-center">আইটেম</th>
+                        <th style="width: 10%;" class="text-end">মূল মূল্য</th>
+                        <th style="width: 10%;" class="text-end">ছাড়</th>
+                        <th style="width: 10%;" class="text-end">সর্বমোট</th>
                         <th style="width: 12%;" class="text-center">অ্যাকশন</th>
                     </tr>
                 </thead>
@@ -162,13 +164,15 @@
                                 <td style="width: 40px;" class="text-center">
                                     <input type="checkbox" class="form-check-input sale-checkbox" data-sale-id="@sale.Id">
                                 </td>
-                                <td style="width: 10%;"><span class="badge bg-primary">#@sale.Id</span></td>
-                                <td style="width: 18%;">@(string.IsNullOrEmpty(sale.CustomerName) ? "সাধারণ গ্রাহক" : sale.CustomerName)</td>
-                                <td style="width: 22%;">@sale.SaleDate.ToString("dd MMM yyyy, hh:mm tt")</td>
-                                <td style="width: 8%;" class="text-center">
+                                <td style="width: 8%;"><span class="badge bg-primary">#@sale.Id</span></td>
+                                <td style="width: 15%;">@(string.IsNullOrEmpty(sale.CustomerName) ? "সাধারণ গ্রাহক" : sale.CustomerName)</td>
+                                <td style="width: 18%;">@sale.SaleDate.ToString("dd MMM yyyy, hh:mm tt")</td>
+                                <td style="width: 7%;" class="text-center">
                                     <span class="badge bg-info">@(sale.SalesItems?.Count ?? 0) টি</span>
                                 </td>
-                                <td style="width: 12%;" class="text-end text-success fw-bold">৳@sale.FinalAmount.ToString("N2")</td>
+                                <td style="width: 10%;" class="text-end">৳@sale.TotalAmount.ToString("N2")</td>
+                                <td style="width: 10%;" class="text-end text-danger">৳@sale.DiscountAmount.ToString("N2")</td>
+                                <td style="width: 10%;" class="text-end text-success fw-bold">৳@sale.FinalAmount.ToString("N2")</td>
                                 <td style="width: 12%;" class="text-center">
                                     <button type="button" class="btn btn-sm btn-danger" data-bs-toggle="modal" data-bs-target="#deleteModal" data-sale-id="@sale.Id">
                                         <i class="bi bi-trash me-1"></i>মুছে ফেলুন
@@ -183,15 +187,14 @@
                                 {
                                     <tr class="table-light">
                                         <td style="width: 40px;"></td>
-                                        <td colspan="2" style="width: calc(10% + 18%);">
+                                        <td colspan="2" style="width: calc(8% + 15%);">
                                             <i class="bi bi-box-seam text-muted me-2"></i>
                                             <strong>@(item.Product?.Name ?? "পণ্য নাম জানা যায়নি")</strong>
                                         </td>
-                                        <td style="width: 22%;">
+                                        <td style="width: 18%;">
                                             <span class="badge bg-success">@item.QuantitySold পিস</span>
                                         </td>
-                                        <td style="width: 8%;" class="text-center"></td>
-                                        <td colspan="2" style="width: calc(12% + 12%);" class="text-end">
+                                        <td colspan="4" style="width: calc(7% + 10% + 10% + 10%);" class="text-end">
                                             <small>@(item.QuantitySold) × ৳@(item.UnitPrice.ToString("N2")) = <strong>@($"৳{Math.Round((decimal)item.QuantitySold * item.UnitPrice, 2):N2}")</strong></small>
                                         </td>
                                     </tr>
@@ -202,7 +205,7 @@
                     else
                     {
                         <tr>
-                            <td colspan="7" class="text-center py-4">
+                            <td colspan="9" class="text-center py-4">
                                 <i class="bi bi-inbox fs-1 text-muted"></i>
                                 <p class="text-muted mt-2">এই সময়ে কোনো বিক্রয় হয়নি</p>
                             </td>
@@ -213,8 +216,9 @@
                     {
                         <tfoot class="table-light">
                             <tr>
-                                <td colspan="6" class="text-end"><strong>মোট:</strong></td>
+                                <td colspan="7" class="text-end"><strong>মোট:</strong></td>
                                 <td class="text-end text-success fs-5 fw-bold">৳@(((decimal)(ViewBag.TotalRevenue ?? 0)).ToString("N2"))</td>
+                                <td></td>
                             </tr>
                         </tfoot>
                     }
@@ -254,6 +258,81 @@
         </div>
     </div>
 </div>
+
+<style>
+    @@media print {
+        /* Hide unnecessary elements */
+        .btn, button, .modal, .card-header button, input[type="checkbox"], .no-print {
+            display: none !important;
+        }
+        
+        /* Remove all background colors */
+        body, .card, .card-header, .card-body, .table thead, .table tbody, .table-dark, 
+        .table-primary, .table-light, .bg-primary, .bg-success, .bg-warning, .bg-info, 
+        .bg-danger, tr, td, th {
+            background-color: white !important;
+            background: white !important;
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
+        
+        /* Make all text black */
+        body, .card, .card-header, .card-body, h1, h2, h3, h4, h5, h6, p, td, th, span {
+            color: black !important;
+        }
+        
+        /* Add borders for table structure */
+        table, th, td {
+            border: 1px solid #000 !important;
+        }
+        
+        thead {
+            border-bottom: 2px solid #000 !important;
+        }
+        
+        /* Keep badge text visible */
+        .badge {
+            border: 1px solid #000 !important;
+            background-color: white !important;
+            color: black !important;
+            padding: 2px 6px;
+        }
+        
+        /* Remove shadows */
+        .shadow, .card {
+            box-shadow: none !important;
+        }
+        
+        /* Page layout */
+        @@page {
+            margin: 1cm;
+        }
+        
+        /* Remove date filter card */
+        .card:first-of-type {
+            display: none !important;
+        }
+        
+        /* Keep only sales table visible */
+        .row.g-4.mb-4 {
+            display: none !important;
+        }
+        
+        /* Remove the product summary card */
+        .card.shadow.mb-4 {
+            display: none !important;
+        }
+        
+        /* Show only the main sales table */
+        .card:last-of-type {
+            display: block !important;
+        }
+        
+        h1, h5 {
+            font-weight: bold !important;
+        }
+    }
+</style>
 
 @section Scripts {
     <script>
